@@ -17,7 +17,7 @@ void receiveMessages(SOCKET client) {
             break;
         } else {
             buffer[bytesReceived] = '\0';
-            cout << "Server: " << buffer << endl;
+            cout << buffer << endl;
         }
     }
 }
@@ -63,7 +63,6 @@ int main() {
     // Main loop for sending messages
     string message;
     while (true) {
-        cout << "Client: ";
         getline(cin, message);
 
         if (message == "kill")
