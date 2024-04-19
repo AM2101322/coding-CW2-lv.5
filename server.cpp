@@ -1,30 +1,40 @@
 #include <iostream>
 #include <string>
 #include <WS2tcpip.h>
+#include <thread>
 
 #pragma comment(lib, "ws2_32.lib")
 
-using namespace std;
+void receiveMessages(SOCKET client) {
+    char buffer[1024];
+    int bytesReceived;
+    while (true) {
+        bytesReceived = recv(client, buffer, sizeof(buffer), 0);
+        if (bytesReceived == SOCKET_ERROR || bytesReceived == 0) {
+            std::cerr << "Error receiving data from client." << std::endl;
+            break;
+        } else {
+            buffer[bytesReceived] = '\0';
+            std::cout << "Client: " << buffer << std::endl;
+        }
+    }
+}
 
 int main() {
-    int client;
     int portNum = 1500;
-    bool isExit = false;
-    int bufsize = 1024;
-    char buffer[bufsize];
 
     WSADATA wsData;
     WORD ver = MAKEWORD(2, 2);
 
     if (WSAStartup(ver, &wsData) != 0) {
-        cerr << "Error initializing Winsock." << endl;
+        std::cerr << "Error initializing Winsock." << std::endl;
         return 1;
     }
 
     SOCKET server = socket(AF_INET, SOCK_STREAM, 0);
 
     if (server == INVALID_SOCKET) {
-        cerr << "Error creating socket." << endl;
+        std::cerr << "Error creating socket." << std::endl;
         WSACleanup();
         return 1;
     }
@@ -35,16 +45,16 @@ int main() {
     server_addr.sin_port = htons(portNum);
 
     if (bind(server, (sockaddr*)&server_addr, sizeof(server_addr)) == SOCKET_ERROR) {
-        cerr << "Error binding connection." << endl;
+        std::cerr << "Error binding connection." << std::endl;
         closesocket(server);
         WSACleanup();
         return 1;
     }
 
-    cout << "Looking for clients..." << endl;
+    std::cout << "Looking for clients..." << std::endl;
 
     if (listen(server, SOMAXCONN) == SOCKET_ERROR) {
-        cerr << "Error listening on socket." << endl;
+        std::cerr << "Error listening on socket." << std::endl;
         closesocket(server);
         WSACleanup();
         return 1;
@@ -52,51 +62,37 @@ int main() {
 
     sockaddr_in client_addr;
     int clientSize = sizeof(client_addr);
-    client = accept(server, (sockaddr*)&client_addr, &clientSize);
+    SOCKET client = accept(server, (sockaddr*)&client_addr, &clientSize);
 
     if (client == INVALID_SOCKET) {
-        cerr << "Error accepting client." << endl;
+        std::cerr << "Error accepting client." << std::endl;
         closesocket(server);
         WSACleanup();
         return 1;
     }
 
-    // Timeout if no data
-    int timeout = 10000; 
-    setsockopt(client, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof(timeout));
-
-    cout << "Client connected on port " << ntohs(client_addr.sin_port) << endl;
-    // hi messeg 
+    // Send "hi" message
     send(client, "hi", 2, 0);
 
-    while (!isExit) {
-        int bytesReceived = recv(client, buffer, bufsize, 0);
-        if (bytesReceived == SOCKET_ERROR || bytesReceived == 0) {
-            // Handle timeout or error
-            if (WSAGetLastError() == WSAETIMEDOUT) {
-                cerr << "Timeout: No data received from client." << endl;
-                continue; // Continue waiting for data
-            } else {
-                cerr << "Error receiving data from client." << endl;
-                isExit = true;
-            }
-        } else {
-            buffer[bytesReceived] = '\0'; // Null-terminate the received data
-            cout << "Client: " << buffer << endl;
-            if (strcmp(buffer, "#") == 0) {
-                isExit = true;
-            } 
-            else {
-                cout << "Server: ";
-                cin.getline(buffer, bufsize);
-                send(client, buffer, strlen(buffer), 0);
-                if (strcmp(buffer, "#") == 0) {
-                    isExit = true;
-                }
-            }
-        }
+    // Start receiving thread
+    std::thread receiveThread(receiveMessages, client);
+
+    // Main loop for sending messages
+    std::string message;
+    while (true) {
+        std::cout << "Server: ";
+        std::getline(std::cin, message);
+
+        if (message == "kill")
+            break;
+
+        send(client, message.c_str(), message.size(), 0);
     }
-    cout << "Connection terminated." << endl;
+
+    // Wait for the receiving thread to finish
+    receiveThread.join();
+
+    std::cout << "Connection terminated." << std::endl;
     closesocket(client);
     closesocket(server);
     WSACleanup();

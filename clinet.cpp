@@ -1,17 +1,29 @@
 #include <iostream>
 #include <string>
 #include <WS2tcpip.h>
+#include <thread>
 
 #pragma comment(lib, "ws2_32.lib")
 
 using namespace std;
 
+void receiveMessages(SOCKET client) {
+    char buffer[1024];
+    int bytesReceived;
+    while (true) {
+        bytesReceived = recv(client, buffer, sizeof(buffer), 0);
+        if (bytesReceived == SOCKET_ERROR || bytesReceived == 0) {
+            cerr << "Error receiving data from server." << endl;
+            break;
+        } else {
+            buffer[bytesReceived] = '\0';
+            cout << "Server: " << buffer << endl;
+        }
+    }
+}
+
 int main() {
-    int client;
     int portNum = 1500;
-    bool isExit = false;
-    int bufsize = 1024;
-    char buffer[bufsize];
     const char* ip = "127.0.0.1";
 
     WSADATA wsData;
@@ -22,7 +34,7 @@ int main() {
         return 1;
     }
 
-    client = socket(AF_INET, SOCK_STREAM, 0);
+    SOCKET client = socket(AF_INET, SOCK_STREAM, 0);
 
     if (client == INVALID_SOCKET) {
         cerr << "Error creating socket." << endl;
@@ -41,60 +53,29 @@ int main() {
         WSACleanup();
         return 1;
     }
+
     // Send "hi" message
     send(client, "hi", 2, 0);
 
-    // Timeout if no data
-    int timeout = 10000; 
-    setsockopt(client, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof(timeout));
+    // Start receiving thread
+    thread receiveThread(receiveMessages, client);
 
-    // conaction worked 
-    cout << "Connection to the server port number: " << portNum << endl;
-    cout << "Awaiting confirmation from the server..." << endl;
+    // Main loop for sending messages
+    string message;
+    while (true) {
+        cout << "Client: ";
+        getline(cin, message);
 
-    int bytesReceived = recv(client, buffer, bufsize, 0);
-    if (bytesReceived == SOCKET_ERROR || bytesReceived == 0) {
-        cerr << "Error receiving confirmation from server." << endl;
-        closesocket(client);
-        WSACleanup();
-        return 1;
-    } 
-    else {
-        buffer[bytesReceived] = '\0'; // Null-terminate the received data
-        cout << "=> Connection confirmed, you are good to go..." << endl;
-        cout << "\n\n=> Enter # to end the connection\n" << endl;
+        if (message == "kill")
+            break;
 
-        while (!isExit) {
-            cout << "Client: ";
-            cin.getline(buffer, bufsize);
-
-            send(client, buffer, strlen(buffer), 0);
-               
-            if (strcmp(buffer, "#") == 0) {
-                isExit = true;
-                break;
-            }
-            bytesReceived = recv(client, buffer, bufsize, 0);
-            if (bytesReceived == SOCKET_ERROR || bytesReceived == 0) {
-                cerr << "Error receiving data from server." << endl;
-                closesocket(client);
-                WSACleanup();
-                return 1;
-            } 
-            else {
-                buffer[bytesReceived] = '\0'; // Null-terminate the received data
-                cout << "Server: " << buffer << endl;
-
-                if (strcmp(buffer, "#") == 0) {
-                    isExit = true;
-                    break;
-                }
-            }
-        }
+        send(client, message.c_str(), message.size(), 0);
     }
 
-    cout << "\n=> Connection terminated.\nGoodbye...\n";
+    // Wait for the receiving thread to finish
+    receiveThread.join();
 
+    cout << "Connection terminated." << endl;
     closesocket(client);
     WSACleanup();
     return 0;
