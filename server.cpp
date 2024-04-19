@@ -5,6 +5,10 @@
 
 #pragma comment(lib, "ws2_32.lib")
 
+constexpr int MAX_CLIENTS = 10; // Maximum number of clients
+SOCKET clients[MAX_CLIENTS]; // Array to store connected clients
+int numClients = 0; // Number of connected clients
+
 void receiveMessages(SOCKET client) {
     char buffer[1024];
     int bytesReceived;
@@ -16,6 +20,12 @@ void receiveMessages(SOCKET client) {
         } else {
             buffer[bytesReceived] = '\0';
             std::cout << "Client: " << buffer << std::endl;
+            // Broadcast message to all other clients
+            for (int i = 0; i < numClients; ++i) {
+                if (clients[i] != client) {
+                    send(clients[i], buffer, bytesReceived, 0);
+                }
+            }
         }
     }
 }
@@ -60,40 +70,26 @@ int main() {
         return 1;
     }
 
-    sockaddr_in client_addr;
-    int clientSize = sizeof(client_addr);
-    SOCKET client = accept(server, (sockaddr*)&client_addr, &clientSize);
-
-    if (client == INVALID_SOCKET) {
-        std::cerr << "Error accepting client." << std::endl;
-        closesocket(server);
-        WSACleanup();
-        return 1;
-    }
-
-    // Send "hi" message
-    send(client, "hi", 2, 0);
-
-    // Start receiving thread
-    std::thread receiveThread(receiveMessages, client);
-
-    // Main loop for sending messages
-    std::string message;
     while (true) {
-        std::cout << "Server: ";
-        std::getline(std::cin, message);
+        sockaddr_in client_addr;
+        int clientSize = sizeof(client_addr);
+        SOCKET client = accept(server, (sockaddr*)&client_addr, &clientSize);
 
-        if (message == "kill")
-            break;
+        if (client == INVALID_SOCKET) {
+            std::cerr << "Error accepting client." << std::endl;
+            continue;
+        }
 
-        send(client, message.c_str(), message.size(), 0);
+        // Add client to array
+        clients[numClients++] = client;
+
+        // Send "hi" message
+        send(client, "hi", 2, 0);
+
+        // Start receiving thread for this client
+        std::thread(receiveMessages, client).detach();
     }
 
-    // Wait for the receiving thread to finish
-    receiveThread.join();
-
-    std::cout << "Connection terminated." << std::endl;
-    closesocket(client);
     closesocket(server);
     WSACleanup();
     return 0;
