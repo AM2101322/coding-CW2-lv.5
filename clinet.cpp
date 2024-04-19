@@ -41,57 +41,47 @@ int main() {
         WSACleanup();
         return 1;
     }
+    // Send "hi" message
+    send(client, "hi", 2, 0);
 
     // Timeout if no data
-    int timeout = 5000; 
+    int timeout = 10000; 
     setsockopt(client, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof(timeout));
 
     // conaction worked 
     cout << "Connection to the server port number: " << portNum << endl;
     cout << "Awaiting confirmation from the server..." << endl;
-    cout << "step 1 client";
 
     int bytesReceived = recv(client, buffer, bufsize, 0);
-    cout << "step 2 client";
     if (bytesReceived == SOCKET_ERROR || bytesReceived == 0) {
         cerr << "Error receiving confirmation from server." << endl;
         closesocket(client);
         WSACleanup();
         return 1;
-        cout << "step 3 client";
     } 
     else {
         buffer[bytesReceived] = '\0'; // Null-terminate the received data
         cout << "=> Connection confirmed, you are good to go..." << endl;
         cout << "\n\n=> Enter # to end the connection\n" << endl;
-        cout << "step 4 client";
 
         while (!isExit) {
             cout << "Client: ";
             cin.getline(buffer, bufsize);
 
-            if (send(client, buffer, strlen(buffer), 0) == SOCKET_ERROR) {
-                cerr << "Error sending data to server." << endl;
-                closesocket(client);
-                WSACleanup();
-                return 1;
-                cout << "step 5 client";
-            }
+            send(client, buffer, strlen(buffer), 0);
+               
             if (strcmp(buffer, "#") == 0) {
                 isExit = true;
                 break;
             }
             bytesReceived = recv(client, buffer, bufsize, 0);
-            cout << "step 6 client";
             if (bytesReceived == SOCKET_ERROR || bytesReceived == 0) {
                 cerr << "Error receiving data from server." << endl;
                 closesocket(client);
                 WSACleanup();
                 return 1;
-                cout << "step 7 client";
             } 
             else {
-                cout << "step 8 client";
                 buffer[bytesReceived] = '\0'; // Null-terminate the received data
                 cout << "Server: " << buffer << endl;
 
