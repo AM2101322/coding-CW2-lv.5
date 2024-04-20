@@ -5,7 +5,7 @@
 
 #pragma comment(lib, "ws2_32.lib")
 
-constexpr int MAX_CLIENTS = 10; // Maximum number of clients
+constexpr int MAX_CLIENTS = 4; // Maximum number of clients
 SOCKET clients[MAX_CLIENTS]; // Array to store connected clients
 int numClients = 0; // Number of connected clients
 
@@ -19,7 +19,7 @@ void receiveMessages(SOCKET client) {
             break;
         } else {
             buffer[bytesReceived] = '\0';
-            std::cout << "Client: " << buffer << std::endl;
+            std::cout << buffer << std::endl;
             // Broadcast message to all other clients
             for (int i = 0; i < numClients; ++i) {
                 if (clients[i] != client) {
@@ -82,6 +82,11 @@ int main() {
 
         // Add client to array
         clients[numClients++] = client;
+
+        if (numClients >= MAX_CLIENTS)
+        {
+            closesocket(server);
+        }
 
         // Send "hi" message
         send(client, "hi", 2, 0);
