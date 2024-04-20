@@ -6,8 +6,8 @@
 #pragma comment(lib, "ws2_32.lib")
 
 const char key[] = "123";
-int portNum = 1500;
-const char* ip = "127.0.0.1";
+int portNum;
+char ip[16]; // Assuming IPv4 address, maximum length is 15 characters + null terminator
 
 using namespace std;
 
@@ -19,16 +19,17 @@ void XOR(char* buffer, int size) {
     }
 }
 
-// this funtion is for the threading to use later
+// Function to receive messages from the server
 void receiveMessages(SOCKET client) {
     char buffer[1024];
     int bytesReceived;
     while (true) {
         bytesReceived = recv(client, buffer, sizeof(buffer), 0);
         if (bytesReceived == SOCKET_ERROR || bytesReceived == 0) {
-            cerr << "server disconacted" << endl;
+            cerr << "Server disconnected" << endl;
             break;
         } else {
+            // Decrypt received message
             XOR(buffer, bytesReceived);
             buffer[bytesReceived] = '\0';
             cout << buffer << endl;
@@ -36,14 +37,14 @@ void receiveMessages(SOCKET client) {
     }
 }
 
-int main() {
-
+// Function to create and manage the client connection
+void createClient(int portNum, const char* ip) {
     WSADATA wsData;
     WORD ver = MAKEWORD(2, 2);
 
     if (WSAStartup(ver, &wsData) != 0) {
-        cerr << "Error initializing Winsock.";
-        return 1;
+        cerr << "Error initializing Winsock." << endl;
+        return;
     }
 
     SOCKET client = socket(AF_INET, SOCK_STREAM, 0);
@@ -51,7 +52,7 @@ int main() {
     if (client == INVALID_SOCKET) {
         cerr << "Error creating socket." << endl;
         WSACleanup();
-        return 1;
+        return;
     }
 
     sockaddr_in server_addr;
@@ -63,13 +64,15 @@ int main() {
         cerr << "Error connecting to server." << endl;
         closesocket(client);
         WSACleanup();
-        return 1;
+        return;
     }
-    std::cout << "you have conected" << endl << "to disconect typ 'kill' " << endl;
-    // threading starts receving messagess 
+
+    cout << "You are connected." << endl << "To disconnect, type 'kill'." << endl;
+
+    // Start receiving messages in a separate thread
     thread receiveThread(receiveMessages, client);
 
-    // loop for sending messages
+    // Loop for sending messages
     string message;
     while (true) {
         getline(cin, message);
@@ -80,9 +83,8 @@ int main() {
             break;
         }
 
-        // Encrypt message 
+        // Encrypt message before sending
         XOR(&message[0], message.size());
         send(client, message.c_str(), message.size(), 0);
     }
-
 }

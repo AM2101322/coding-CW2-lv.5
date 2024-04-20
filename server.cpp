@@ -6,6 +6,8 @@
 #pragma comment(lib, "ws2_32.lib")
 
 const char key[] = "123";
+int portNum;
+char ip[16];
 
 constexpr int MAX_CLIENTS = 4;
 SOCKET clients[MAX_CLIENTS];
@@ -43,15 +45,13 @@ void receiveMessages(SOCKET client) {
     }
 }
 
-int main() {
-    int portNum = 1500;
-
+void create_server(int port, char* ip) {
+   
     WSADATA wsData;
     WORD ver = MAKEWORD(2, 2);
 
     if (WSAStartup(ver, &wsData) != 0) {
         std::cerr << "Error initializing Winsock." << std::endl;
-        return 1;
     }
 
     SOCKET server = socket(AF_INET, SOCK_STREAM, 0);
@@ -59,19 +59,17 @@ int main() {
     if (server == INVALID_SOCKET) {
         std::cerr << "Error creating socket." << std::endl;
         WSACleanup();
-        return 1;
     }
 
     sockaddr_in server_addr;
     server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = INADDR_ANY;
-    server_addr.sin_port = htons(portNum);
+    server_addr.sin_addr.s_addr = inet_addr(ip);
+    server_addr.sin_port = htons(port);
 
     if (bind(server, (sockaddr*)&server_addr, sizeof(server_addr)) == SOCKET_ERROR) {
         std::cerr << "Error binding connection." << std::endl;
         closesocket(server);
         WSACleanup();
-        return 1;
     }
 
     std::cout << "Looking for clients..." << std::endl;
@@ -80,7 +78,6 @@ int main() {
         std::cerr << "Error listening on socket." << std::endl;
         closesocket(server);
         WSACleanup();
-        return 1;
     }
 
     while (true) {
@@ -109,5 +106,4 @@ int main() {
 
     closesocket(server);
     WSACleanup();
-    return 0;
 }
