@@ -2,12 +2,9 @@
 #include <string>
 #include <WS2tcpip.h>
 #include <thread>
+#include "headers.h"
 
 #pragma comment(lib, "ws2_32.lib")
-
-const char key[] = "123";
-int portNum;
-char ip[16];
 
 constexpr int MAX_CLIENTS = 4;
 SOCKET clients[MAX_CLIENTS];
@@ -106,4 +103,5 @@ void create_server(int port, char* ip) {
 
     closesocket(server);
     WSACleanup();
-}
+};
+

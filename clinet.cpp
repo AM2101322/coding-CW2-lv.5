@@ -2,12 +2,11 @@
 #include <string>
 #include <WS2tcpip.h>
 #include <thread>
+#include "client.h"
 
 #pragma comment(lib, "ws2_32.lib")
 
 const char key[] = "123";
-int portNum;
-char ip[16]; // Assuming IPv4 address, maximum length is 15 characters + null terminator
 
 using namespace std;
 
@@ -20,7 +19,7 @@ void XOR(char* buffer, int size) {
 }
 
 // Function to receive messages from the server
-void receiveMessages(SOCKET client) {
+void receiveMessages_C(SOCKET client) {
     char buffer[1024];
     int bytesReceived;
     while (true) {
@@ -70,7 +69,7 @@ void createClient(int portNum, const char* ip) {
     cout << "You are connected." << endl << "To disconnect, type 'kill'." << endl;
 
     // Start receiving messages in a separate thread
-    thread receiveThread(receiveMessages, client);
+    thread receiveThread(receiveMessages_C, client);
 
     // Loop for sending messages
     string message;
@@ -88,3 +87,4 @@ void createClient(int portNum, const char* ip) {
         send(client, message.c_str(), message.size(), 0);
     }
 }
+
