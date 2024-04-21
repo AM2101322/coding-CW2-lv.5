@@ -6,13 +6,12 @@
 
 
 
-
-void XOR(char* buffer, int size);
-
-
-void receiveMessages_C(SOCKET client);
+void XOR(char* buffer, int size, const std::string& key);
 
 
-void createClient(int portNum, const char* ip);
+void receiveMessages_C(SOCKET client, const std::string& key);
+
+
+void createClient(int portNum, const char* ip, const std::string& key);
 
 #endif 

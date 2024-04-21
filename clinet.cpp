@@ -2,24 +2,23 @@
 #include <string>
 #include <WS2tcpip.h>
 #include <thread>
-#include "client.h"
+#include "client.h" // Assuming this header contains the necessary function prototypes
 
 #pragma comment(lib, "ws2_32.lib")
 
-const char key[] = "123";
-
 using namespace std;
 
+
 // Function to perform XOR encryption and decryption
-void XOR(char* buffer, int size) {
-    int keyLen = strlen(key);
+void XOR(char* buffer, int size, const std::string& key) {
+    int keyLen = key.length();
     for (int i = 0; i < size; ++i) {
         buffer[i] ^= key[i % keyLen];
     }
 }
 
 // Function to receive messages from the server
-void receiveMessages_C(SOCKET client) {
+void receiveMessages_C(SOCKET client, const std::string& key) {
     char buffer[1024];
     int bytesReceived;
     while (true) {
@@ -29,7 +28,7 @@ void receiveMessages_C(SOCKET client) {
             break;
         } else {
             // Decrypt received message
-            XOR(buffer, bytesReceived);
+            XOR(buffer, bytesReceived, key);
             buffer[bytesReceived] = '\0';
             cout << buffer << endl;
         }
@@ -37,7 +36,7 @@ void receiveMessages_C(SOCKET client) {
 }
 
 // Function to create and manage the client connection
-void createClient(int portNum, const char* ip) {
+void createClient(int portNum, const char* ip, const std::string& key) {
     WSADATA wsData;
     WORD ver = MAKEWORD(2, 2);
 
@@ -66,10 +65,11 @@ void createClient(int portNum, const char* ip) {
         return;
     }
 
-    cout << "You are connected." << endl << "To disconnect, type 'kill'." << endl;
+    cout << "You are connected. To disconnect, type 'kill'." << endl;
 
     // Start receiving messages in a separate thread
-    thread receiveThread(receiveMessages_C, client);
+    thread receiveThread(receiveMessages_C, client, key);
+    receiveThread.detach();  // Allows the main thread to continue without waiting for this thread to finish
 
     // Loop for sending messages
     string message;
@@ -83,8 +83,7 @@ void createClient(int portNum, const char* ip) {
         }
 
         // Encrypt message before sending
-        XOR(&message[0], message.size());
+        XOR(&message[0], message.size(), key);
         send(client, message.c_str(), message.size(), 0);
     }
 }
-
