@@ -9,7 +9,7 @@
 
 using namespace std;
 
-std::string key;
+string key;
 
 int main() {
     int portNum;
@@ -21,8 +21,6 @@ int main() {
     cin >> choice;
     cin.ignore();  
 
-    cout << "What is the key to this chat?" << endl;
-    getline(cin, key);
 
     if (choice == 1) {
         cout << "Enter the IP address you want to host on:" << endl;
@@ -35,6 +33,8 @@ int main() {
         cin.getline(ip, sizeof(ip));
         cout << "What port are you talking on:" << endl;
         cin >> portNum;
+        cout << "What is the key to this chat?" << endl;
+        cin >> key;
         createClient(portNum, ip, key);
     } else {
         cout << "Invalid choice, try again." << endl;
