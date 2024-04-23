@@ -30,7 +30,7 @@ The application supports creating user accounts, verifying users, and allows com
 
 ```bash
 # comand to compile code
-g++ '.\mainapp.cpp' '.\server.cpp' '.\clinet.cpp' '.\CSV.cpp' -o main.exe -lws2_32
+g++ '.\mainapp.cpp' '.\server.cpp' '.\client.cpp' '.\CSV.cpp' -o main.exe -lws2_32
 ```
 ```bash
 App.exe

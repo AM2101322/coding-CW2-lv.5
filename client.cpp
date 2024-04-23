@@ -2,7 +2,7 @@
 #include <string>
 #include <WS2tcpip.h>
 #include <thread>
-#include "client.h" // Assuming this header contains the necessary function prototypes
+#include "client.h" 
 
 #pragma comment(lib, "ws2_32.lib")
 
